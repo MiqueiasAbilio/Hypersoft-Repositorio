@@ -1,0 +1,92 @@
+using Microsoft.EntityFrameworkCore;
+using Hypesoft.Domain.Entities;
+using Hypesoft.Domain.Repositories;
+using Hypesoft.Domain.Constants;
+using Hypesoft.Infrastructure.Data;
+
+namespace Hypesoft.Infrastructure.Repositories;
+
+public class ProductRepository : IProductRepository
+{
+    private readonly AppDbContext _context;
+
+    public ProductRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Products.FindAsync(new object[] { id }, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Products
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        await _context.Products.AddAsync(product, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
+    {
+        _context.Products.Update(product);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var product = await GetByIdAsync(id, cancellationToken);
+        if (product != null)
+        {
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+    public async Task<IEnumerable<Product>> SearchAsync(string? name, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var lowerName = name.ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(lowerName));
+        }
+
+        return await query.ToListAsync(cancellationToken);
+    }
+    
+    public async Task<IEnumerable<Product>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
+{
+    return await _context.Products
+        .AsNoTracking()
+        .Where(p => p.CategoryId == categoryId)
+        .ToListAsync(cancellationToken);
+}
+
+public async Task<IEnumerable<Product>> GetLowStockAsync(int threshold = ProductConstants.LOW_STOCK_THRESHOLD, CancellationToken cancellationToken = default)
+{
+    return await _context.Products
+        .AsNoTracking()
+        .Where(p => p.StockQuantity < threshold)
+        .ToListAsync(cancellationToken);
+}
+
+    public async Task<(IEnumerable<Product> Items, int TotalCount)> GetAllPagedAsync(int pageNumber, int pageSize)
+{
+    var query = _context.Products.AsNoTracking();
+    
+    var totalCount = await query.CountAsync();
+    var items = await query
+        .Skip((pageNumber - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
+
+    return (items, totalCount);
+}
+}

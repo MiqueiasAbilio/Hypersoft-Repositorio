@@ -1,0 +1,110 @@
+services:
+  #Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hypesoft-frontend
+    ports:
+     - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+      - AUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - AUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTH_TRUST_HOST=true
+      - KEYCLOAK_ISSUER=${KEYCLOAK_AUTHORITY_EXTERNAL:-http://localhost:8080/realms/hypesoft-realm}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-hypesoft-client}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
+    extra_hosts:
+      - "localhost:host-gateway"
+    depends_on:
+      - api
+      - keycloak
+    networks:
+      - hypesoft-network
+
+  # API .NET
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hypesoft-api
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ASPNETCORE_URLS=${ASPNETCORE_URLS:-http://0.0.0.0:5000}
+      - ConnectionStrings__MongoDb=${ConnectionStrings__MongoDb:-mongodb://mongodb:27017}
+      - ConnectionStrings__DatabaseName=${ConnectionStrings__DatabaseName:-hypesoft_db}
+      - DISABLE_AUTH=${DISABLE_AUTH:-false}
+      - KEYCLOAK_INTERNAL_URL=${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hypesoft-realm}
+      - KEYCLOAK_EXTERNAL_URL=${KEYCLOAK_AUTHORITY_EXTERNAL:-http://localhost:8080/realms/hypesoft-realm}
+      - KEYCLOAK_AUDIENCE=${KEYCLOAK_AUDIENCE:-account}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - hypesoft-network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: hypesoft-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=hypesoft_db
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - hypesoft-network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/hypesoft_db --quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: hypesoft-mongo-ui
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017/
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - hypesoft-network
+
+  # Keycloak Authentication Server
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: hypesoft-keycloak
+    command: start-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_BOOTSTRAP_ADMIN_USERNAME}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      - KC_DB=${KC_DB}
+      - KC_HOSTNAME_STRICT=${KC_HOSTNAME_STRICT}
+      - KC_HTTP_ENABLED=${KC_HTTP_ENABLED}
+      - KC_PROXY_HEADERS=${KC_PROXY_HEADERS}
+    networks:
+      - hypesoft-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mongo-data:
+
+networks:
+  hypesoft-network:
+    driver: bridge
