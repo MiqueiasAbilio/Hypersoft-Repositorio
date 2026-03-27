@@ -1,91 +1,96 @@
-README.md — Hypersoft Challenge
-# 🚀 Hypersoft Challenge
+📄 README.md
+# Hypersoft Challenge
 
-Projeto fullstack desenvolvido como desafio técnico, com foco em arquitetura moderna, autenticação segura e containerização.
+Sistema fullstack com autenticação via Keycloak, API em .NET e banco MongoDB.
 
----
+## 🚀 Tecnologias
 
-## 📌 Visão Geral
-
-Este projeto consiste em uma aplicação composta por:
-
-- 🖥️ Frontend em Next.js
-- ⚙️ Backend em .NET
-- 🔐 Autenticação com Keycloak
-- 🐳 Ambiente containerizado com Docker
-
-O objetivo é simular um ambiente real de aplicação, com separação de responsabilidades, segurança e escalabilidade.
+- Frontend: Next.js
+- Backend: .NET
+- Banco de dados: MongoDB
+- Autenticação: Keycloak
+- Infraestrutura: Docker Compose
 
 ---
 
-## 🏗️ Arquitetura
+## 📦 Como rodar o projeto
 
-
-📦 hypesoft-challenge
-┣ 📂 frontend → Aplicação Next.js
-┣ 📂 backend → API .NET
-┣ 📂 docker → Configurações de containers
-┗ 📄 docker-compose.yml
-
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-### Backend
-- .NET (ASP.NET Core)
-- MediatR
-- MongoDB / InMemory
-- JWT Authentication
-
-### Frontend
-- Next.js
-- React
-- Tailwind (se estiver usando)
-
-### Infraestrutura
-- Docker
-- Docker Compose
-- Keycloak (Autenticação)
-
----
-
-## 🔐 Autenticação
-
-A autenticação é gerenciada via **Keycloak**, permitindo:
-
-- Login seguro via OAuth2 / OpenID Connect
-- Gerenciamento de usuários e roles
-- Integração com o frontend e backend
-
----
-
-## ⚙️ Como Rodar o Projeto
-
-### Pré-requisitos
-
-- Docker instalado
-- Docker Compose
-- Node.js (opcional para rodar frontend isolado)
-- .NET SDK (opcional para backend local)
-
----
-
-### 🐳 Rodando com Docker (Recomendado)
+### 1. Clonar o repositório
 
 ```bash
-docker-compose up --build
+git clone <repo-url>
+cd hypesoft-challenge
+2. Subir os containers
+docker compose up --build
+🌐 Serviços disponíveis
+Serviço	URL
+Frontend	http://localhost:3000
 
-A aplicação estará disponível em:
+API (.NET)	http://localhost:5000
 
-Frontend: http://localhost:3000
-Backend: http://localhost:5000
-Keycloak: http://localhost:8080
-🔧 Variáveis de Ambiente
+Swagger	http://localhost:5000/swagger
 
-Crie um arquivo .env na raiz do projeto com base no exemplo:
+Mongo Express	http://localhost:8081
 
-NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXTAUTH_URL=http://localhost:3000
-KEYCLOAK_CLIENT_ID=hypesoft-client
-KEYCLOAK_CLIENT_SECRET=your-secret
+Keycloak	http://localhost:8080
+🔐 Configuração do Keycloak
+1. Acessar o painel
+http://localhost:8080
+
+Login:
+
+admin / admin
+2. Criar Realm
+hypesoft-realm
+3. Criar Client
+Client ID: hypesoft-client
+Type: OpenID Connect
+
+Configurações importantes:
+
+Client authentication: OFF
+Standard flow: ON
+Redirect URIs
+http://localhost:3000/*
+Web Origins
+http://localhost:3000
+4. Criar usuário
+
+Exemplo:
+
+username: teste
+password: 123456
+📊 Banco de dados
+
+MongoDB disponível em:
+
+http://localhost:8081
+
+Banco esperado:
+
+hypesoft_db
+⚠️ Problema conhecido (em andamento)
+
+Atualmente, a autenticação no frontend está funcionando, porém:
+
+As requisições para a API não incluem o token Bearer
+A API retorna 401 Unauthorized nos endpoints protegidos
+Causa
+
+O frontend não está enviando o Authorization header com o access token do Keycloak.
+
+Próximo passo
+Ajustar o frontend para incluir o token nas requisições
+Validar persistência no MongoDB
+🧠 Observações técnicas
+Keycloak está configurado com volume persistente
+Docker Compose ajustado para evitar variáveis não definidas
+Ambiente totalmente containerizado
+📌 Status do projeto
+Parte	Status
+Docker	✅ OK
+MongoDB	✅ OK
+Keycloak	✅ OK
+Frontend login	✅ OK
+API	✅ OK
+Persistência	⚠️ Em ajuste
